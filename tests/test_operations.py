@@ -1,6 +1,6 @@
 import pytest
 
-from model import Account
+from account import Account
 from operations import deposit, withdraw, transfer
 
 

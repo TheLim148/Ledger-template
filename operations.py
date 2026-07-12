@@ -1,4 +1,4 @@
-from model import Account
+from account import Account
 
 def deposit(account: Account, amount: int):
     _validate_amount(amount)
