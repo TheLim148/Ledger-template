@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QLineEdit,
     QPushButton,
+    QComboBox,
 )
 
 class LedgerWindow(QWidget):
@@ -28,7 +29,7 @@ class LedgerWindow(QWidget):
         
         self.balance_input = QLineEdit()
         self.balance_input.setPlaceholderText("Enter your start balance..")
-        self.balance_input.setMaximumWidth(300)        
+        self.balance_input.setMaximumWidth(300)
         
         self.status_label = QLabel()
         self.status_label.setMaximumWidth(300)
@@ -36,6 +37,9 @@ class LedgerWindow(QWidget):
         self.create_account_btn = QPushButton("Create Account")
         self.create_account_btn.setMaximumWidth(100)
         self.create_account_btn.clicked.connect(self.handle_create_account)
+
+        self.accounts_combobox = QComboBox()
+        self.accounts_combobox.setMaximumWidth(300)
 
         self.setup_layout()
     
@@ -49,11 +53,16 @@ class LedgerWindow(QWidget):
 
         main_layout.addLayout(form_layout)
         main_layout.addWidget(self.create_account_btn)
+        main_layout.addWidget(self.accounts_combobox)
         main_layout.addStretch()
 
     def handle_create_account(self):
         owner = self.owner_input.text()
         raw_balance = self.balance_input.text()
+
+        if owner.strip() == "" or raw_balance == "":
+            self.status_label.setText("Fields must not be empty")
+            return
 
         try:
             parsed_balance = int(raw_balance)
@@ -63,17 +72,23 @@ class LedgerWindow(QWidget):
 
         try:
             account = self._ledger.create_account(owner, parsed_balance)
+            self.accounts_combobox.addItem(f"{account.id} | {account.owner} | {account.balance}", account.id)
+            self.clear_inputs()
         except ValueError as err:
             self.status_label.setText(f"{err}")
             return
 
         self.status_label.setText(f"Account created: {account.owner}, {account.balance}")
 
+    def clear_inputs(self):
+        self.owner_input.setText("")
+        self.balance_input.setText("")
+
+
 def main():
     app = QApplication([])
 
     window = LedgerWindow()
-    window._ledger
 
     window.show()
     window.setFocus()
