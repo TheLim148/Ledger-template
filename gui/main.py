@@ -10,55 +10,64 @@ from PySide6.QtWidgets import (
     QPushButton,
 )
 
+class LedgerWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+        
+        self.setWindowTitle("Ledger")
+        self.resize(400, 300)
+        self.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+
+        self.owner_input = QLineEdit()
+        self.owner_input.setPlaceholderText("Enter your name..")
+        self.owner_input.setMaximumWidth(300)
+        
+        self.balance_input = QLineEdit()
+        self.balance_input.setPlaceholderText("Enter your start balance..")
+        self.balance_input.setMaximumWidth(300)        
+        
+        self.status_label = QLabel()
+        self.status_label.setMaximumWidth(100)
+
+        self.create_account_btn = QPushButton("Create Account")
+        self.create_account_btn.setMaximumWidth(100)
+        self.create_account_btn.clicked.connect(self.handle_create_account)
+
+        self.setup_layout()
+    
+    def setup_layout(self):
+        main_layout = QVBoxLayout(self)
+
+        form_layout = QFormLayout()
+        form_layout.addRow("Owner: ", self.owner_input)
+        form_layout.addRow("Balance: ", self.balance_input)
+        form_layout.addRow("Status: ", self.status_label)
+
+        main_layout.addLayout(form_layout)
+        main_layout.addWidget(self.create_account_btn)
+        main_layout.addStretch()
+
+    def handle_create_account(self):
+        owner = self.owner_input.text()
+        raw_balance = self.balance_input.text()
+
+        try:
+            parsed_balance = int(raw_balance)
+            self.status_label.setText(f"{owner}: {parsed_balance}")
+        except ValueError:
+            self.status_label.setText("Balance must be an integer!")
+            return
+
+
 def main():
     app = QApplication([])
 
-    window = QWidget()
-    window.setWindowTitle("Ledger app")
-    window.resize(400, 300)
-    window.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
-
-    layout = QFormLayout(window)
-
-    owner_input = QLineEdit()
-    owner_input.setPlaceholderText("Enter your name..")
-    owner_input.setMaximumWidth(300)
-    
-    balance_input = QLineEdit()
-    balance_input.setPlaceholderText("Enter your start balance..")
-    balance_input.setMaximumWidth(300)
-
-    # Create Account button
-    ca_btn = QPushButton("Create Account")
-    ca_btn.setMaximumWidth(100)
-
-    def handle_create_account():
-        parse_input(owner_input, balance_input)
-
-    ca_btn.clicked.connect(handle_create_account)
-    
-    layout.addRow("Owner: ", owner_input)
-    layout.addRow("Balance: ", balance_input)
-    layout.addRow(ca_btn)
-    layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
-
+    window = LedgerWindow()    
 
     window.show()
     window.setFocus()
 
     app.exec()
-
-def parse_input(input1: QLineEdit, input2: QLineEdit):
-    owner = input1.text()
-    raw_balance = input2.text()
-
-    try:
-        parsed_balance = int(raw_balance)
-        print(owner, parsed_balance)
-    except ValueError:
-        print("balance must be an integer!")
-        return
-
 
 if __name__ == "__main__":
     main()
