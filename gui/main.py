@@ -1,3 +1,5 @@
+from ledger import Ledger
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication, 
@@ -13,6 +15,8 @@ from PySide6.QtWidgets import (
 class LedgerWindow(QWidget):
     def __init__(self):
         super().__init__()
+
+        self._ledger = Ledger()
         
         self.setWindowTitle("Ledger")
         self.resize(400, 300)
@@ -27,7 +31,7 @@ class LedgerWindow(QWidget):
         self.balance_input.setMaximumWidth(300)        
         
         self.status_label = QLabel()
-        self.status_label.setMaximumWidth(100)
+        self.status_label.setMaximumWidth(300)
 
         self.create_account_btn = QPushButton("Create Account")
         self.create_account_btn.setMaximumWidth(100)
@@ -53,16 +57,23 @@ class LedgerWindow(QWidget):
 
         try:
             parsed_balance = int(raw_balance)
-            self.status_label.setText(f"{owner}: {parsed_balance}")
         except ValueError:
             self.status_label.setText("Balance must be an integer!")
             return
 
+        try:
+            account = self._ledger.create_account(owner, parsed_balance)
+        except ValueError as err:
+            self.status_label.setText(f"{err}")
+            return
+
+        self.status_label.setText(f"Account created: {account.owner}, {account.balance}")
 
 def main():
     app = QApplication([])
 
-    window = LedgerWindow()    
+    window = LedgerWindow()
+    window._ledger
 
     window.show()
     window.setFocus()
