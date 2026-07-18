@@ -1,4 +1,5 @@
 from ledger import Ledger
+from account import Account
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -18,6 +19,8 @@ class LedgerWindow(QWidget):
         super().__init__()
 
         self._ledger = Ledger()
+
+    
         
         self.setWindowTitle("Ledger")
         self.resize(400, 300)
@@ -41,6 +44,19 @@ class LedgerWindow(QWidget):
         self.accounts_combobox = QComboBox()
         self.accounts_combobox.setMaximumWidth(300)
 
+        self.amount_input = QLineEdit()
+        self.amount_input.setPlaceholderText("Enter amount..")
+        self.amount_input.setMaximumWidth(300)
+
+        self.deposit_btn = QPushButton("Deposit")
+        self.deposit_btn.setMaximumWidth(100)
+        self.deposit_btn.clicked.connect(self.handle_deposit)
+
+        self.withdraw_btn = QPushButton("Withdraw")
+        self.withdraw_btn.setMaximumWidth(100)
+        self.withdraw_btn.clicked.connect(self.handle_withdraw)
+
+        self.test_accounts()
         self.setup_layout()
     
     def setup_layout(self):
@@ -54,7 +70,54 @@ class LedgerWindow(QWidget):
         main_layout.addLayout(form_layout)
         main_layout.addWidget(self.create_account_btn)
         main_layout.addWidget(self.accounts_combobox)
+        main_layout.addWidget(self.amount_input)
+        main_layout.addWidget(self.deposit_btn)
+        main_layout.addWidget(self.withdraw_btn)
         main_layout.addStretch()
+
+    def test_accounts(self):
+        self._ledger.create_account("user1", 1000)
+        self._ledger.create_account("user2", 100000)
+        self._ledger.create_account("user3", 50000)
+        self._ledger.create_account("user4", 666)
+        self._ledger.create_account("user5", 10)
+
+        accounts = self._ledger.accounts.items()
+        for idx, account in accounts:
+            text = f"{account.id} | {account.owner} | {account.balance}" 
+            self.accounts_combobox.addItem(text, account.id)
+
+    def handle_deposit(self):
+        account_id = self.accounts_combobox.currentData()
+        raw_amount = self.amount_input.text()
+
+        try:
+            amount = int(raw_amount)
+
+            self._ledger.deposit(account_id, amount)
+            account = self._ledger.get_account(account_id)
+            self.refresh_combobox(account)
+            self.status_label.setText(f"Deposit is success. Balance of {account.id} is {account.balance}")
+
+        except ValueError as err:
+            print(f"{err}")
+
+
+    def handle_withdraw(self):
+        account_id = self.accounts_combobox.currentData()
+        raw_amount = self.amount_input.text()
+
+        try:
+            amount = int(raw_amount)
+
+            self._ledger.withdraw(account_id, amount)
+            account = self._ledger.get_account(account_id)
+            self.refresh_combobox(account)
+            self.status_label.setText(f"Withdraw is success. Balance of {account.id} is {account.balance}")
+
+        except ValueError as err:
+            print(f"{err}")
+
 
     def handle_create_account(self):
         owner = self.owner_input.text()
@@ -72,13 +135,19 @@ class LedgerWindow(QWidget):
 
         try:
             account = self._ledger.create_account(owner, parsed_balance)
-            self.accounts_combobox.addItem(f"{account.id} | {account.owner} | {account.balance}", account.id)
+            text = f"{account.id} | {account.owner} | {account.balance}"
+            self.accounts_combobox.addItem(text, account.id)
+
             self.clear_inputs()
         except ValueError as err:
             self.status_label.setText(f"{err}")
             return
 
         self.status_label.setText(f"Account created: {account.owner}, {account.balance}")
+
+    def refresh_combobox(self, account: Account):
+        text = f"{account.id} | {account.owner} | {account.balance}"
+        self.accounts_combobox.setItemText(account.id - 1, text)
 
     def clear_inputs(self):
         self.owner_input.setText("")
