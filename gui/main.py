@@ -14,10 +14,13 @@ from PySide6.QtWidgets import (
     QComboBox,
     QTableWidget,
     QTableWidgetItem,
+    QAbstractItemView,
 )
 
+import sys
+
 class LedgerWindow(QWidget):
-    def __init__(self):
+    def __init__(self, seed_demo):
         super().__init__()
 
         self._ledger = Ledger()
@@ -72,11 +75,15 @@ class LedgerWindow(QWidget):
 
         self.accounts_table = QTableWidget(columnCount = 3)
         self.accounts_table.setHorizontalHeaderLabels(["id", "owner", "balance"])
+        self.accounts_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
         self.transactions_table = QTableWidget(columnCount = 6)
         self.transactions_table.setHorizontalHeaderLabels(["id", "type", "amount", "from", "to", "created_at"])
+        self.transactions_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+
         
-        self.seed_demo_accounts()
+        if seed_demo:
+            self.seed_demo_accounts()
         self.refresh_ui()
         self.setup_layout()
  
@@ -253,6 +260,19 @@ class LedgerWindow(QWidget):
     def refresh_ui(self):
         accounts = self._ledger.accounts
 
+        if accounts == {}:
+            self.deposit_btn.setEnabled(False)
+            self.withdraw_btn.setEnabled(False)
+        else:
+            self.deposit_btn.setEnabled(True)
+            self.withdraw_btn.setEnabled(True)
+
+        if len(accounts) < 2:
+            self.transfer_btn.setEnabled(False)
+        else:        
+            self.transfer_btn.setEnabled(True)
+
+
         single_id = self.single_operation_combobox.currentData()
         from_id = self.from_accounts_combobox.currentData()
         to_id = self.to_accounts_combobox.currentData()
@@ -291,11 +311,22 @@ class LedgerWindow(QWidget):
         self.from_accounts_combobox.clear()
         self.to_accounts_combobox.clear()
 
+        self.single_amount_input.clear()
+        self.transaction_amount_input.clear()
+
 
 def main():
+    args = sys.argv[1:]
+    seed_demo = False
+
+    if "--demo" in args:
+        seed_demo = True
+    else:
+        seed_demo = False
+
     app = QApplication([])
 
-    window = LedgerWindow()
+    window = LedgerWindow(seed_demo=seed_demo)
 
     window.show()
     window.setFocus()
