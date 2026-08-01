@@ -25,5 +25,8 @@ def transfer(src: Account, dst: Account, amount: int):
     deposit(dst, amount)
 
 def _validate_amount(amount: int) -> None:
+    if amount == None:
+        raise ValueError("Amount is empty")
+
     if amount <= 0:
         raise ValueError("Amount should be greater than 0")

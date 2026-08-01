@@ -1,11 +1,7 @@
-from ledger import Ledger
-from account import Account
-
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication, 
     QLabel, 
-    QFrame,
     QWidget,
     QVBoxLayout,
     QFormLayout,
@@ -17,7 +13,11 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
 )
 
+from ledger import Ledger
+from account import Account
+
 import sys
+
 
 class LedgerWindow(QWidget):
     def __init__(self, seed_demo):
@@ -161,16 +161,24 @@ class LedgerWindow(QWidget):
             self.from_accounts_combobox.addItem(text, account.id)
             self.to_accounts_combobox.addItem(text, account.id)
 
+    def parse(self, raw_value: str):
+        if raw_value == "":
+            self.status_label.setText("Value is empty")
+            return
+
+        try:
+            value = int(raw_value)
+        except ValueError:
+            self.status_label.setText("Value must be an integer")
+            return
+
+        return value
+
     def handle_deposit(self):
         account_id = self.single_operation_combobox.currentData()
         raw_amount = self.single_amount_input.text()
 
-        try:
-            amount = int(raw_amount)
-
-        except ValueError:
-            self.status_label.setText("Amount must be an integer")
-            return
+        amount = self.parse(raw_amount)
 
         try:
             self._ledger.deposit(account_id, amount)
@@ -189,12 +197,7 @@ class LedgerWindow(QWidget):
         account_id = self.single_operation_combobox.currentData()
         raw_amount = self.single_amount_input.text()
 
-        try:
-            amount = int(raw_amount)
-
-        except ValueError:
-            self.status_label.setText("Amount must be an integer")
-            return
+        amount = self.parse(raw_amount)
 
         try:
             self._ledger.withdraw(account_id, amount)
@@ -214,11 +217,7 @@ class LedgerWindow(QWidget):
 
         raw_amount = self.transaction_amount_input.text()
 
-        try:
-            amount = int(raw_amount)
-        except ValueError:
-            self.status_label.setText("Amount must be an integer")
-            return
+        amount = self.parse(raw_amount)
 
         try:            
             self._ledger.transfer(from_account_id, to_account_id, amount)
@@ -240,11 +239,7 @@ class LedgerWindow(QWidget):
             self.status_label.setText("Fields must not be empty")
             return
 
-        try:
-            parsed_balance = int(raw_balance)
-        except ValueError:
-            self.status_label.setText("Balance must be an integer!")
-            return
+        parsed_balance = self.parse(raw_balance)
 
         try:
             account = self._ledger.create_account(owner, parsed_balance)
@@ -257,9 +252,44 @@ class LedgerWindow(QWidget):
 
         self.status_label.setText(f"Account created: {account.owner}, {account.balance}")
 
-    def refresh_ui(self):
-        accounts = self._ledger.accounts
+    def remember_comboboxes_positions(func):
+        def wrapper(self, accounts: dict[int, Account]):
+            single_id = self.single_operation_combobox.currentData()
+            from_id = self.from_accounts_combobox.currentData()
+            to_id = self.to_accounts_combobox.currentData()
 
+            self.single_operation_combobox.clear()
+            self.from_accounts_combobox.clear()
+            self.to_accounts_combobox.clear()
+
+            func(self, accounts)
+
+            single_idx = self.single_operation_combobox.findData(single_id)
+            from_idx = self.from_accounts_combobox.findData(from_id)
+            to_idx = self.to_accounts_combobox.findData(to_id)
+
+            if single_idx != -1:
+                self.single_operation_combobox.setCurrentIndex(single_idx)
+
+            if from_idx != -1:
+                self.from_accounts_combobox.setCurrentIndex(from_idx)
+
+            if to_idx != -1:
+                self.to_accounts_combobox.setCurrentIndex(to_idx)
+
+
+        return wrapper
+
+    @remember_comboboxes_positions
+    def refresh_comboboxes(self, accounts: dict[int, Account]):
+        for _, account in accounts.items():
+            text = f"{account.id} | {account.owner} | {account.balance}"
+
+            self.single_operation_combobox.addItem(text, account.id)
+            self.from_accounts_combobox.addItem(text, account.id)
+            self.to_accounts_combobox.addItem(text, account.id)
+
+    def update_buttons_state(self, accounts: dict[int, Account]):
         if accounts == {}:
             self.deposit_btn.setEnabled(False)
             self.withdraw_btn.setEnabled(False)
@@ -272,33 +302,13 @@ class LedgerWindow(QWidget):
         else:        
             self.transfer_btn.setEnabled(True)
 
-
-        single_id = self.single_operation_combobox.currentData()
-        from_id = self.from_accounts_combobox.currentData()
-        to_id = self.to_accounts_combobox.currentData()
-
+    def refresh_ui(self):
         self.clear_inputs()
+        accounts = self._ledger.accounts
 
-        for idx, account in accounts.items():
-            text = f"{account.id} | {account.owner} | {account.balance}"
+        self.update_buttons_state(accounts)
 
-            self.single_operation_combobox.addItem(text, account.id)
-            self.from_accounts_combobox.addItem(text, account.id)
-            self.to_accounts_combobox.addItem(text, account.id)
-
-        single_idx = self.single_operation_combobox.findData(single_id)
-        from_idx = self.from_accounts_combobox.findData(from_id)
-        to_idx = self.to_accounts_combobox.findData(to_id)
-
-        if single_idx != -1:
-            self.single_operation_combobox.setCurrentIndex(single_idx)
-
-        if from_idx != -1:
-            self.from_accounts_combobox.setCurrentIndex(from_idx)
-
-        if to_idx != -1:
-            self.to_accounts_combobox.setCurrentIndex(to_idx)
-
+        self.refresh_comboboxes(accounts)
 
         self.refresh_accounts_table()
         self.refresh_transactions_table()
@@ -307,13 +317,8 @@ class LedgerWindow(QWidget):
         self.owner_input.setText("")
         self.balance_input.setText("")
 
-        self.single_operation_combobox.clear()
-        self.from_accounts_combobox.clear()
-        self.to_accounts_combobox.clear()
-
         self.single_amount_input.clear()
         self.transaction_amount_input.clear()
-
 
 def main():
     args = sys.argv[1:]
