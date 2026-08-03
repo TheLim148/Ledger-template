@@ -155,12 +155,6 @@ class LedgerWindow(QWidget):
         self._ledger.create_account("user4", 666)
         self._ledger.create_account("user5", 10)
 
-        accounts = self._ledger.accounts.items()
-        for idx, account in accounts:
-            text = f"{account.id} | {account.owner} | {account.balance}" 
-            self.from_accounts_combobox.addItem(text, account.id)
-            self.to_accounts_combobox.addItem(text, account.id)
-
     def parse(self, raw_value: str):
         if raw_value == "":
             self.status_label.setText("Value is empty")
@@ -179,6 +173,10 @@ class LedgerWindow(QWidget):
         raw_amount = self.single_amount_input.text()
 
         amount = self.parse(raw_amount)
+
+        if amount == None:
+            self.status_label.setText("Amount is None")
+            return
 
         try:
             self._ledger.deposit(account_id, amount)
@@ -199,6 +197,10 @@ class LedgerWindow(QWidget):
 
         amount = self.parse(raw_amount)
 
+        if amount == None:
+            self.status_label.setText("Amount is None")
+            return
+
         try:
             self._ledger.withdraw(account_id, amount)
             account = self._ledger.get_account(account_id)
@@ -218,6 +220,10 @@ class LedgerWindow(QWidget):
         raw_amount = self.transaction_amount_input.text()
 
         amount = self.parse(raw_amount)
+
+        if amount == None:
+            self.status_label.setText("Amount is None")
+            return
 
         try:            
             self._ledger.transfer(from_account_id, to_account_id, amount)
@@ -240,6 +246,10 @@ class LedgerWindow(QWidget):
             return
 
         parsed_balance = self.parse(raw_balance)
+
+        if parsed_balance == None:
+            self.status_label.setText("Balance is None")
+            return
 
         try:
             account = self._ledger.create_account(owner, parsed_balance)
