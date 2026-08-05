@@ -10,7 +10,7 @@ class TransactionType(Enum):
 @dataclass(frozen=True)
 class Transaction():
     id: int
-    type: TransactionType
+    transaction_type: TransactionType
     amount: int
     from_account_id: int | None
     to_account_id: int | None

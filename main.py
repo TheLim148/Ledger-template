@@ -1,19 +1,33 @@
-from account import Account
-from operations import deposit, withdraw, transfer, pprint
+from PySide6.QtWidgets import QApplication
+
+from gui.window import LedgerWindow
+from repositories.in_memory_repository import InMemoryRepository
+from ledger import Ledger
+
+import sys
 
 def main():
-    account = Account(1, "huh", 10000)
-    account1 = Account(2, "huh2", 5000)
-    try:
-        pprint(account)
-        pprint(account1)
-        transfer(account, account1, 5000)
-        pprint(account)
-        pprint(account1)
-        account2 = Account(3, "1", 100)
+    args = sys.argv[1:]
+    seed_demo = False
 
-    except ValueError as err:
-        print(f"{err}")
+    if "--demo" in args:
+        seed_demo = True
+    else:
+        seed_demo = False
+
+    repository = InMemoryRepository()
+    ledger = Ledger(repository=repository)
+
+
+    app = QApplication([])
+    window = LedgerWindow(seed_demo=seed_demo, ledger=ledger)
+
+
+    window.show()
+    window.setFocus()
+
+    app.exec()
+
 
 if __name__ == "__main__":
     main()

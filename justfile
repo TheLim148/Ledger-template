@@ -1,6 +1,6 @@
 
 run args="":
-    uv run python -m gui.main {{args}}
+    uv run python main.py {{args}}
 
 test:
     uv run python -m pytest

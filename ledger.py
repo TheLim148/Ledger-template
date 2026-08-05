@@ -4,56 +4,53 @@ from account import Account
 from transaction import Transaction, TransactionType
 from operations import deposit, withdraw, transfer
 
+from repositories.base import LedgerRepository
 
 class Ledger():
-    def __init__(self) -> None:
-        self.accounts: dict[int, Account] = {}
-        self.transactions: list[Transaction] = []
+    def __init__(self, repository: LedgerRepository) -> None:
 
-        self._next_account_id = 1
-        self._next_transaction_id = 1
+        self._repo = repository
 
     def create_account(self, owner: str, balance: int = 0) -> Account:
-        account = Account(
-            id = self._next_account_id,
-            owner = owner,
-            balance = balance,
-        )
-
-        self.accounts[account.id] = account
-        self._next_account_id += 1
-
-        return account
+        return self._repo.create_account(owner, balance)
 
     def get_account(self, account_id: int) -> Account:
-        try:
-            return self.accounts[account_id]
-        except KeyError:
-            raise ValueError("Account not found")
+        return self._repo.get_account(account_id)
+
+    def get_accounts(self) -> list[Account]:
+        return self._repo.get_accounts()
 
     def deposit(self, account_id: int, amount: int) -> Transaction:
         account = self.get_account(account_id)
 
         deposit(account, amount)
 
-        return self._add_transaction(
-            type=TransactionType.DEPOSIT,
+        self._repo.update_account(account)
+
+        transaction = self._repo.create_transaction(
             amount=amount,
+            transaction_type=TransactionType.DEPOSIT,
             from_account_id=None,
-            to_account_id=account.id,
+            to_account_id=account.id
         )
+
+        return transaction
 
     def withdraw(self, account_id: int, amount: int) -> Transaction:
         account = self.get_account(account_id)
 
         withdraw(account, amount)
 
-        return self._add_transaction(
-            type=TransactionType.WITHDRAW,
+        self._repo.update_account(account)
+
+        transaction = self._repo.create_transaction(
             amount=amount,
+            transaction_type=TransactionType.WITHDRAW,
             from_account_id=account.id,
             to_account_id=None,
         )
+
+        return transaction
 
     def transfer(
         self, 
@@ -66,41 +63,21 @@ class Ledger():
 
         transfer(from_account, to_account, amount)
 
-        return self._add_transaction(
-            type=TransactionType.TRANSFER,
+        self._repo.update_account(from_account)
+        self._repo.update_account(to_account)
+
+        transaction = self._repo.create_transaction(
             amount=amount,
+            transaction_type=TransactionType.TRANSFER,
             from_account_id=from_account.id,
             to_account_id=to_account.id,
         )
-    
-    def get_transactions(self) -> list[Transaction]:
-        return self.transactions.copy()
-
-    def get_account_transactions(self, account_id: int) -> list[Transaction]:
-        return [
-            transaction
-            for transaction in self.transactions
-            if transaction.from_account_id == account_id
-            or transaction.to_account_id == account_id
-        ]
-
-    def _add_transaction(
-        self,
-        type: TransactionType,
-        amount: int,
-        from_account_id: int | None,
-        to_account_id: int | None,
-    ) -> Transaction:
-        transaction = Transaction(
-            id = self._next_transaction_id,
-            type = type,
-            amount = amount,
-            from_account_id = from_account_id,
-            to_account_id = to_account_id,
-            created_at = datetime.now()
-        )
-
-        self.transactions.append(transaction)
-        self._next_transaction_id += 1
 
         return transaction
+
+    
+    def get_transactions(self) -> list[Transaction]:
+        return self._repo.get_transactions()
+
+    def get_account_transactions(self, account_id: int) -> list[Transaction]:
+        return self._repo.get_account_transactions(account_id)

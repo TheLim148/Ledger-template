@@ -1,6 +1,5 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QApplication, 
     QLabel, 
     QWidget,
     QVBoxLayout,
@@ -16,14 +15,11 @@ from PySide6.QtWidgets import (
 from ledger import Ledger
 from account import Account
 
-import sys
-
-
 class LedgerWindow(QWidget):
-    def __init__(self, seed_demo):
+    def __init__(self, seed_demo, ledger: Ledger):
         super().__init__()
 
-        self._ledger = Ledger()
+        self._ledger = ledger
  
         self.setWindowTitle("Ledger")
         self.resize(400, 300)
@@ -52,6 +48,12 @@ class LedgerWindow(QWidget):
         
         self.to_accounts_combobox = QComboBox()
         self.to_accounts_combobox.setMaximumWidth(300)
+
+        self._account_comboboxes = [
+            self.single_operation_combobox,
+            self.from_accounts_combobox,
+            self.to_accounts_combobox
+        ]
 
         self.single_amount_input = QLineEdit()
         self.single_amount_input.setPlaceholderText("Enter amount..")
@@ -126,10 +128,10 @@ class LedgerWindow(QWidget):
         main_layout.addStretch()
 
     def refresh_accounts_table(self):
-        accounts = self._ledger.accounts
+        accounts = self._ledger.get_accounts()
         self.accounts_table.setRowCount(len(accounts))
         row = 0
-        for idx, account in accounts.items():
+        for account in accounts:
             self.accounts_table.setItem(row, 0, QTableWidgetItem(str(account.id)))
             self.accounts_table.setItem(row, 1, QTableWidgetItem(account.owner))
             self.accounts_table.setItem(row, 2, QTableWidgetItem(str(account.balance)))
@@ -141,7 +143,7 @@ class LedgerWindow(QWidget):
         row = 0
         for transaction in transactions:
             self.transactions_table.setItem(row, 0, QTableWidgetItem(str(transaction.id)))
-            self.transactions_table.setItem(row, 1, QTableWidgetItem(str(transaction.type.name)))
+            self.transactions_table.setItem(row, 1, QTableWidgetItem(str(transaction.transaction_type.name)))
             self.transactions_table.setItem(row, 2, QTableWidgetItem(str(transaction.amount)))
             self.transactions_table.setItem(row, 3, QTableWidgetItem(str(transaction.from_account_id)))
             self.transactions_table.setItem(row, 4, QTableWidgetItem(str(transaction.to_account_id)))
@@ -262,45 +264,25 @@ class LedgerWindow(QWidget):
 
         self.status_label.setText(f"Account created: {account.owner}, {account.balance}")
 
-    def remember_comboboxes_positions(func):
-        def wrapper(self, accounts: dict[int, Account]):
-            single_id = self.single_operation_combobox.currentData()
-            from_id = self.from_accounts_combobox.currentData()
-            to_id = self.to_accounts_combobox.currentData()
 
-            self.single_operation_combobox.clear()
-            self.from_accounts_combobox.clear()
-            self.to_accounts_combobox.clear()
+    def refresh_comboboxes(self, accounts: list[Account]):
+        account_comboboxes = self._account_comboboxes
 
-            func(self, accounts)
+        for account_combobox in account_comboboxes:
+            combo_id = account_combobox.currentData()
+            account_combobox.clear()
 
-            single_idx = self.single_operation_combobox.findData(single_id)
-            from_idx = self.from_accounts_combobox.findData(from_id)
-            to_idx = self.to_accounts_combobox.findData(to_id)
+            for account in accounts:
+                text = f"{account.id} | {account.owner} | {account.balance}"
+                account_combobox.addItem(text, account.id)
 
-            if single_idx != -1:
-                self.single_operation_combobox.setCurrentIndex(single_idx)
+            combo_idx = account_combobox.findData(combo_id)
 
-            if from_idx != -1:
-                self.from_accounts_combobox.setCurrentIndex(from_idx)
+            if combo_idx != -1:
+                account_combobox.setCurrentIndex(combo_idx)
 
-            if to_idx != -1:
-                self.to_accounts_combobox.setCurrentIndex(to_idx)
-
-
-        return wrapper
-
-    @remember_comboboxes_positions
-    def refresh_comboboxes(self, accounts: dict[int, Account]):
-        for _, account in accounts.items():
-            text = f"{account.id} | {account.owner} | {account.balance}"
-
-            self.single_operation_combobox.addItem(text, account.id)
-            self.from_accounts_combobox.addItem(text, account.id)
-            self.to_accounts_combobox.addItem(text, account.id)
-
-    def update_buttons_state(self, accounts: dict[int, Account]):
-        if accounts == {}:
+    def update_buttons_state(self, accounts: list[Account]):
+        if accounts == []:
             self.deposit_btn.setEnabled(False)
             self.withdraw_btn.setEnabled(False)
         else:
@@ -314,7 +296,7 @@ class LedgerWindow(QWidget):
 
     def refresh_ui(self):
         self.clear_inputs()
-        accounts = self._ledger.accounts
+        accounts = self._ledger.get_accounts()
 
         self.update_buttons_state(accounts)
 
@@ -329,24 +311,3 @@ class LedgerWindow(QWidget):
 
         self.single_amount_input.clear()
         self.transaction_amount_input.clear()
-
-def main():
-    args = sys.argv[1:]
-    seed_demo = False
-
-    if "--demo" in args:
-        seed_demo = True
-    else:
-        seed_demo = False
-
-    app = QApplication([])
-
-    window = LedgerWindow(seed_demo=seed_demo)
-
-    window.show()
-    window.setFocus()
-
-    app.exec()
-
-if __name__ == "__main__":
-    main()
