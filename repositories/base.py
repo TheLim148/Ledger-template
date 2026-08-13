@@ -9,7 +9,8 @@ class LedgerRepository(ABC):
         self,
         owner: str,
         balance: int = 0,
-    ): pass
+    ) -> None: 
+        pass
 
     @abstractmethod
     def get_account(self, account_id: int) -> Account: pass

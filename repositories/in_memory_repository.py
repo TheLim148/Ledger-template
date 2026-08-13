@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from account import Account
-from transaction import Transaction, TransactionType
+from transaction import Transaction
 
 from .base import LedgerRepository
 

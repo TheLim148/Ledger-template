@@ -3,8 +3,11 @@ import pytest
 from ledger import Ledger
 from transaction import TransactionType
 
+from repositories.in_memory_repository import InMemoryRepository
+
 def test_successful_create_account():
-    ledger = Ledger()
+    repo = InMemoryRepository()
+    ledger = Ledger(repo)
 
     ledger.create_account("user1", 1000)
     account = ledger.get_account(1)
@@ -14,7 +17,8 @@ def test_successful_create_account():
     assert account.balance == 1000
 
 def test_create_account_with_bad_owner():
-    ledger = Ledger()
+    repo = InMemoryRepository()
+    ledger = Ledger(repo)
 
     with pytest.raises(ValueError, match="Owner should be non empty"):
         ledger.create_account("", 1000)
@@ -26,35 +30,39 @@ def test_create_account_with_bad_owner():
        ledger.create_account("\n\r\t", 1000)
 
 def test_create_account_with_bad_balance():
-    ledger = Ledger()
+    repo = InMemoryRepository()
+    ledger = Ledger(repo)
 
     with pytest.raises(ValueError, match="Balance cannot be negative"):
         ledger.create_account("user1", -1000)
 
 def test_create_account_increase_id():
-    ledger = Ledger()
+    repo = InMemoryRepository()
+    ledger = Ledger(repo)
 
     ledger.create_account("user1", 1000)
     ledger.create_account("user2", 1000)
     ledger.create_account("user3", 1000)
 
-    assert ledger.accounts.__len__() == 3
-    
-    for i in ledger.accounts.keys():
+    assert len(ledger.get_accounts()) == 3
+ 
+    for i in range(1, len(ledger.get_accounts())):
         assert ledger.get_account(i).id == i
 
 def test_deposit_increase_balance():
-    ledger = Ledger()
+    repo = InMemoryRepository()
+    ledger = Ledger(repo)
 
     ledger.create_account("user1", 1000)
     ledger.deposit(1, 500)
 
     assert ledger.get_account(1).balance == 1500
     assert ledger.get_account_transactions(1)[0].amount == 500 
-    assert ledger.get_account_transactions(1)[0].type == TransactionType.DEPOSIT
+    assert ledger.get_account_transactions(1)[0].transaction_type == TransactionType.DEPOSIT
 
 def test_deposit_with_bad_amount():
-    ledger = Ledger()
+    repo = InMemoryRepository()
+    ledger = Ledger(repo)
 
     ledger.create_account("user1", 1000)
 
@@ -68,7 +76,8 @@ def test_deposit_with_bad_amount():
     assert ledger.get_account(1).balance == 1000
 
 def test_deposit_account_not_found():
-    ledger = Ledger()
+    repo = InMemoryRepository()
+    ledger = Ledger(repo)
 
     with pytest.raises(ValueError, match="Account not found"):
         ledger.deposit(999, 1000)
@@ -77,17 +86,19 @@ def test_deposit_account_not_found():
 
 
 def test_withdraw_decrease_balance():
-    ledger = Ledger()
+    repo = InMemoryRepository()
+    ledger = Ledger(repo)
 
     ledger.create_account("user1", 1000)
     ledger.withdraw(1, 500)
 
     assert ledger.get_account(1).balance == 500
     assert ledger.get_account_transactions(1)[0].amount == 500
-    assert ledger.get_account_transactions(1)[0].type == TransactionType.WITHDRAW
+    assert ledger.get_account_transactions(1)[0].transaction_type == TransactionType.WITHDRAW
 
 def test_withdraw_insufficient_funds():
-    ledger = Ledger()
+    repo = InMemoryRepository()
+    ledger = Ledger(repo)
 
     ledger.create_account("user1", 1000)
     
@@ -98,7 +109,8 @@ def test_withdraw_insufficient_funds():
     assert ledger.get_transactions() == []
 
 def test_withdraw_account_not_found():
-    ledger = Ledger()
+    repo = InMemoryRepository()
+    ledger = Ledger(repo)
 
     with pytest.raises(ValueError, match="Account not found"):
         ledger.withdraw(999, 1000)
@@ -106,7 +118,8 @@ def test_withdraw_account_not_found():
     assert ledger.get_transactions() == []
 
 def test_withdraw_with_bad_amount():
-    ledger = Ledger()
+    repo = InMemoryRepository()
+    ledger = Ledger(repo)
 
     ledger.create_account("user1", 1000)
 
@@ -120,7 +133,8 @@ def test_withdraw_with_bad_amount():
     assert ledger.get_account(1).balance == 1000
 
 def test_transfer_preserve_balance():
-    ledger = Ledger()
+    repo = InMemoryRepository()
+    ledger = Ledger(repo)
 
     ledger.create_account("user1", 2000)
     ledger.create_account("user2", 500)
@@ -140,8 +154,8 @@ def test_transfer_preserve_balance():
     assert ledger.get_account_transactions(account1.id)[0].amount == 500
     assert ledger.get_account_transactions(account2.id)[0].amount == 500
 
-    assert ledger.get_account_transactions(account1.id)[0].type == TransactionType.TRANSFER
-    assert ledger.get_account_transactions(account2.id)[0].type == TransactionType.TRANSFER
+    assert ledger.get_account_transactions(account1.id)[0].transaction_type == TransactionType.TRANSFER
+    assert ledger.get_account_transactions(account2.id)[0].transaction_type == TransactionType.TRANSFER
 
     assert ledger.get_account_transactions(account1.id)[0].from_account_id == account1.id
     assert ledger.get_account_transactions(account2.id)[0].to_account_id == account2.id
@@ -149,7 +163,8 @@ def test_transfer_preserve_balance():
     assert ledger.get_transactions().__len__() == 1
 
 def test_transfer_insufficient_funds():
-    ledger = Ledger()
+    repo = InMemoryRepository()
+    ledger = Ledger(repo)
 
     ledger.create_account("user1", 2000)
     ledger.create_account("user2", 500)
@@ -165,7 +180,8 @@ def test_transfer_insufficient_funds():
     assert ledger.get_transactions() == []
 
 def test_transfer_account_not_found():
-    ledger = Ledger()
+    repo = InMemoryRepository()
+    ledger = Ledger(repo)
 
     with pytest.raises(ValueError, match="Account not found"):
         ledger.transfer(42, 999, 1000)
@@ -173,7 +189,8 @@ def test_transfer_account_not_found():
     assert ledger.get_transactions() == []
 
 def test_transfer_with_bad_amount():
-    ledger = Ledger()
+    repo = InMemoryRepository()
+    ledger = Ledger(repo)
 
     ledger.create_account("user1", 2000)
     ledger.create_account("user2", 500)
@@ -195,7 +212,8 @@ def test_transfer_with_bad_amount():
     
 
 def test_transfer_to_same_account():
-    ledger = Ledger()
+    repo = InMemoryRepository()
+    ledger = Ledger(repo)
 
     ledger.create_account("user1", 2000)
     account = ledger.get_account(1)
@@ -208,7 +226,8 @@ def test_transfer_to_same_account():
     assert account.balance == 2000
     
 def test_get_transactions():
-    ledger = Ledger()
+    repo = InMemoryRepository()
+    ledger = Ledger(repo)
 
     ledger.create_account("user1", 1000)
     ledger.create_account("user2", 2000)
@@ -229,7 +248,8 @@ def test_get_transactions():
     assert transactions[2].amount == 200
 
 def test_get_account_transactions():
-    ledger = Ledger()
+    repo = InMemoryRepository()
+    ledger = Ledger(repo)
 
     ledger.create_account("user1", 1000)
     ledger.create_account("user2", 2000)
@@ -244,8 +264,8 @@ def test_get_account_transactions():
     assert len(transactions_account1) == 2
     assert len(transactions_account2) == 2
 
-    assert transactions_account1[0].type == TransactionType.DEPOSIT
-    assert transactions_account1[1].type == TransactionType.TRANSFER
+    assert transactions_account1[0].transaction_type == TransactionType.DEPOSIT
+    assert transactions_account1[1].transaction_type == TransactionType.TRANSFER
     
-    assert transactions_account2[0].type == TransactionType.WITHDRAW
-    assert transactions_account2[1].type == TransactionType.TRANSFER
+    assert transactions_account2[0].transaction_type == TransactionType.WITHDRAW
+    assert transactions_account2[1].transaction_type == TransactionType.TRANSFER
