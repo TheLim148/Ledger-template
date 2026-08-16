@@ -16,8 +16,17 @@ class SQLiteRepository(LedgerRepository):
             sql = file.read()
             crs.executescript(sql)
 
+    def close(self) -> None:
+        self._db.close()
+
     def create_account(self, owner, balance = 0) -> None:
         crs = self._db.cursor()
+
+        if not owner.strip():
+            raise ValueError("Owner should be non empty")
+        if balance < 0:
+            raise ValueError("Balance cannot be negative")
+        
         crs.execute("insert into accounts(owner, balance) values(?, ?)", (owner, balance))
         self._db.commit()
 
@@ -32,7 +41,6 @@ class SQLiteRepository(LedgerRepository):
             account = Account(row[0], row[1], row[2]) 
 
         return account
-
 
     def get_accounts(self):
         crs = self._db.cursor()
@@ -76,7 +84,14 @@ class SQLiteRepository(LedgerRepository):
 
         self._db.commit()
 
-        transaction = Transaction(row[0], row[1], row[2], row[3], row[4], datetime.fromisoformat(row[5]))
+        transaction = Transaction(
+            row[0], 
+            TransactionType(row[1]), 
+            row[2], 
+            row[3], 
+            row[4], 
+            datetime.fromisoformat(row[5])
+        )
 
         return transaction
 
@@ -89,7 +104,14 @@ class SQLiteRepository(LedgerRepository):
         transactions = []
 
         for row in rows:
-            transaction = Transaction(row[0], row[1], row[2], row[3], row[4], datetime.fromisoformat(row[5]))
+            transaction = Transaction(
+                row[0], 
+                TransactionType(row[1]), 
+                row[2], 
+                row[3], 
+                row[4], 
+                datetime.fromisoformat(row[5])
+            )
             transactions.append(transaction)
 
         return transactions
@@ -103,7 +125,14 @@ class SQLiteRepository(LedgerRepository):
         transactions = []
 
         for row in rows:
-            transaction = Transaction(row[0], row[1], row[2], row[3], row[4], datetime.fromisoformat(row[5]))
+            transaction = Transaction(
+                row[0], 
+                TransactionType(row[1]), 
+                row[2], 
+                row[3], 
+                row[4], 
+                datetime.fromisoformat(row[5])
+            )
             transactions.append(transaction)
 
         return transactions
