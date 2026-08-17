@@ -19,7 +19,7 @@ class SQLiteRepository(LedgerRepository):
     def close(self) -> None:
         self._db.close()
 
-    def create_account(self, owner, balance = 0) -> None:
+    def create_account(self, owner, balance = 0) -> Account:
         crs = self._db.cursor()
 
         if not owner.strip():
@@ -27,8 +27,12 @@ class SQLiteRepository(LedgerRepository):
         if balance < 0:
             raise ValueError("Balance cannot be negative")
         
-        crs.execute("insert into accounts(owner, balance) values(?, ?)", (owner, balance))
+        crs.execute("insert into accounts(owner, balance) values(?, ?) returning *", (owner, balance))
+        row = crs.fetchone()
+
         self._db.commit()
+
+        return Account(row[0], row[1], row[2])
 
     def get_account(self, account_id: int) -> Account:
         crs = self._db.cursor()

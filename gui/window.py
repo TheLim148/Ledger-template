@@ -264,7 +264,6 @@ class LedgerWindow(QWidget):
 
         self.status_label.setText(f"Account created: {account.owner}, {account.balance}")
 
-
     def refresh_comboboxes(self, accounts: list[Account]):
         account_comboboxes = self._account_comboboxes
 

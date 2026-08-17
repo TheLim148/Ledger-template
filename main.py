@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QApplication
 
 from gui.window import LedgerWindow
 from repositories.in_memory_repository import InMemoryRepository
+from repositories.sqlite_repository import SQLiteRepository
 from ledger import Ledger
 
 import sys
@@ -15,7 +16,7 @@ def main():
     else:
         seed_demo = False
 
-    repository = InMemoryRepository()
+    repository = SQLiteRepository("./database.db")
     ledger = Ledger(repository=repository)
 
 
