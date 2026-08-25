@@ -19,6 +19,38 @@ class SQLiteRepository(LedgerRepository):
     def close(self) -> None:
         self._db.close()
 
+    def _row_to_account(self, row: tuple):
+        """
+        row[0] - id
+        row[1] - owner
+        row[2] - balance
+        """
+
+        return Account(
+            row[0],
+            row[1],
+            row[2]
+        )
+
+    def _row_to_transaction(self, row: tuple):
+        """
+        row[0] - id
+        row[1] - TransactionType
+        row[2] - amount
+        row[3] - from_account_id
+        row[4] - to_account_id
+        row[5] - created_at
+        """
+
+        return Transaction(
+            row[0], 
+            TransactionType(row[1]), 
+            row[2], 
+            row[3], 
+            row[4], 
+            datetime.fromisoformat(row[5])
+        )
+
     def create_account(self, owner, balance = 0) -> Account:
         crs = self._db.cursor()
 
@@ -30,9 +62,10 @@ class SQLiteRepository(LedgerRepository):
         crs.execute("insert into accounts(owner, balance) values(?, ?) returning *", (owner, balance))
         row = crs.fetchone()
 
+
         self._db.commit()
 
-        return Account(row[0], row[1], row[2])
+        return self._row_to_account(row)
 
     def get_account(self, account_id: int) -> Account:
         crs = self._db.cursor()
@@ -42,7 +75,7 @@ class SQLiteRepository(LedgerRepository):
         if row is None:
             raise ValueError("Account not found")
         else:
-            account = Account(row[0], row[1], row[2]) 
+            account = self._row_to_account(row)
 
         return account
 
@@ -55,11 +88,10 @@ class SQLiteRepository(LedgerRepository):
         accounts = []
 
         for row in rows:
-            account = Account(row[0], row[1], row[2])
+            account = self._row_to_account(row)
             accounts.append(account)
 
-        return accounts
-        
+        return accounts 
 
     def update_account(self, account: Account) -> None:
         crs = self._db.cursor()
@@ -88,14 +120,7 @@ class SQLiteRepository(LedgerRepository):
 
         self._db.commit()
 
-        transaction = Transaction(
-            row[0], 
-            TransactionType(row[1]), 
-            row[2], 
-            row[3], 
-            row[4], 
-            datetime.fromisoformat(row[5])
-        )
+        transaction = self._row_to_transaction(row)
 
         return transaction
 
@@ -108,14 +133,8 @@ class SQLiteRepository(LedgerRepository):
         transactions = []
 
         for row in rows:
-            transaction = Transaction(
-                row[0], 
-                TransactionType(row[1]), 
-                row[2], 
-                row[3], 
-                row[4], 
-                datetime.fromisoformat(row[5])
-            )
+            transaction = self._row_to_transaction(row)
+
             transactions.append(transaction)
 
         return transactions
@@ -129,14 +148,8 @@ class SQLiteRepository(LedgerRepository):
         transactions = []
 
         for row in rows:
-            transaction = Transaction(
-                row[0], 
-                TransactionType(row[1]), 
-                row[2], 
-                row[3], 
-                row[4], 
-                datetime.fromisoformat(row[5])
-            )
+            transaction = self._row_to_transaction(row)
+
             transactions.append(transaction)
 
         return transactions

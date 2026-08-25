@@ -28,6 +28,7 @@ def main():
     window.setFocus()
 
     app.exec()
+    repository.close()
 
 
 if __name__ == "__main__":
