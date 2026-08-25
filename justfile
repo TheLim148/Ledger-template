@@ -1,5 +1,5 @@
 
-run args="":
+run *args:
     uv run python main.py {{args}}
 
 test:

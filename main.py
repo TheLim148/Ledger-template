@@ -4,31 +4,40 @@ from gui.window import LedgerWindow
 from repositories.in_memory_repository import InMemoryRepository
 from repositories.sqlite_repository import SQLiteRepository
 from ledger import Ledger
+from parser import create_parser
 
 import sys
 
 def main():
-    args = sys.argv[1:]
-    seed_demo = False
+    parser = create_parser()
 
-    if "--demo" in args:
-        seed_demo = True
+    args = parser.parse_args()    
+
+    if args.storage == "memory":
+        repo = InMemoryRepository()
+    elif args.storage == "sqlite":
+        repo = SQLiteRepository(args.db_path)
     else:
-        seed_demo = False
-
-    repository = SQLiteRepository("./database.db")
-    ledger = Ledger(repository=repository)
+        raise ValueError(f"Unknown storage: {args.storage}")
+        
+    ledger = Ledger(repository=repo)
 
 
     app = QApplication([])
-    window = LedgerWindow(seed_demo=seed_demo, ledger=ledger)
+
+    window = LedgerWindow(
+        seed_demo=args.demo, 
+        ledger=ledger
+    )
 
 
     window.show()
     window.setFocus()
 
     app.exec()
-    repository.close()
+
+    if hasattr(repo, "close"):
+        repo.close()
 
 
 if __name__ == "__main__":
