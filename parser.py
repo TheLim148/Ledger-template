@@ -9,7 +9,7 @@ def create_parser() -> argparse.ArgumentParser:
 
     parser.add_argument(
         "--storage", 
-        choices=["memory", "sqlite"],
+        choices=["memory", "sqlite", "postgres"],
         default="sqlite",
         help="Storage backend to usage"
     )

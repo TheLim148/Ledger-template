@@ -5,15 +5,26 @@ from transaction import TransactionType
 
 from repositories.in_memory_repository import InMemoryRepository
 from repositories.sqlite_repository import SQLiteRepository
+from repositories.postgres_repository import PostgresRepository
 
-@pytest.fixture(params=["memory", "sqlite"])
+@pytest.fixture(params=["memory", "sqlite", "postgres"])
 def ledger(request):
     if request.param == "memory":
         repo = InMemoryRepository()
+
     if request.param == "sqlite":
         repo = SQLiteRepository(":memory:")
 
-    return Ledger(repo)
+    if request.param == "postgres":
+        repo = PostgresRepository("ledger_test", "ledger_user")
+        repo._db.cursor().execute("truncate table accounts, transactions restart identity cascade")
+        repo._db.commit()
+
+    yield Ledger(repo)
+
+    if hasattr(repo, "close"):
+        repo.close()
+
 
 def test_successful_create_account(ledger: Ledger):
     ledger.create_account("user1", 1000)

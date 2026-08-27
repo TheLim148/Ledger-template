@@ -1,4 +1,5 @@
-from sqlite3 import connect
+import psycopg
+
 from pathlib import Path
 
 from .base import LedgerRepository
@@ -8,20 +9,35 @@ from transaction import Transaction, TransactionType
 
 from datetime import datetime
 
-class SQLiteRepository(LedgerRepository):
-    def __init__(self, path_to_db: Path) -> None:
-        self._db = connect(path_to_db)
+class PostgresRepository(LedgerRepository):
+    def __init__(
+            self, 
+            dbname: str, 
+            user: str,
+            password: str = "",
+            host: str = "",
+            port: int = 5432
+        ) -> None:
+
+        self._db = psycopg.connect(dbname=dbname, user=user)
         crs = self._db.cursor()
 
-        schema_path = Path(__file__).resolve().parent.parent / "sql" / "schema.sql"
+        schema_path = Path(__file__).resolve().parent.parent / "sql" / "schema_postgres.sql"
         with open(schema_path) as file:
-            sql = file.read()
-            crs.executescript(sql)
+            schema = file.read()
+            crs.execute(schema)
+
+        self._db.commit()
 
     def close(self) -> None:
         self._db.close()
 
-    def _row_to_account(self, row: tuple):
+    def clear(self) -> None:
+        crs = self._db.cursor()
+
+        crs.execute("truncate table accounts, transactions restart identity cascade")
+
+    def _row_to_account(self, row: tuple) -> Account:
         """
         row[0] - id\n
         row[1] - owner\n
@@ -34,7 +50,7 @@ class SQLiteRepository(LedgerRepository):
             row[2]
         )
 
-    def _row_to_transaction(self, row: tuple):
+    def _row_to_transaction(self, row: tuple) -> Transaction:
         """
         row[0] - id\n
         row[1] - TransactionType\n
@@ -50,7 +66,7 @@ class SQLiteRepository(LedgerRepository):
             row[2], 
             row[3], 
             row[4], 
-            datetime.fromisoformat(row[5])
+            row[5]
         )
 
     def create_account(self, owner, balance = 0) -> Account:
@@ -61,17 +77,16 @@ class SQLiteRepository(LedgerRepository):
         if balance < 0:
             raise ValueError("Balance cannot be negative")
         
-        crs.execute("insert into accounts(owner, balance) values(?, ?) returning *", (owner, balance))
+        crs.execute("insert into accounts(owner, balance) values(%s, %s) returning *", (owner, balance))
         row = crs.fetchone()
-
 
         self._db.commit()
 
         return self._row_to_account(row)
 
-    def get_account(self, account_id: int) -> Account:
+    def get_account(self, account_id) -> Account:
         crs = self._db.cursor()
-        crs.execute("select * from accounts where id = ?", (account_id,))
+        crs.execute("select * from accounts where id = %s", (account_id,))
         row = crs.fetchone()
 
         if row is None:
@@ -93,12 +108,12 @@ class SQLiteRepository(LedgerRepository):
             account = self._row_to_account(row)
             accounts.append(account)
 
-        return accounts 
+        return accounts
 
     def update_account(self, account: Account) -> None:
         crs = self._db.cursor()
         crs.execute(
-            "update accounts set owner = ?, balance = ? where id = ?", 
+            "update accounts set owner = %s, balance = %s where id = %s",
             (account.owner, account.balance, account.id)
         )
 
@@ -110,14 +125,13 @@ class SQLiteRepository(LedgerRepository):
         transaction_type, 
         from_account_id, 
         to_account_id
-    ) -> Transaction:
-        created_at = datetime.now()
-
+    ):
         crs = self._db.cursor()
         crs.execute(
-            "insert into transactions(type, amount, from_account_id, to_account_id, created_at) values(?, ?, ?, ?, ?) returning *",
-            (transaction_type.value, amount, from_account_id, to_account_id, created_at.isoformat())
+            "insert into transactions(type, amount, from_account_id, to_account_id) values(%s, %s, %s, %s) returning *",
+            (transaction_type.value, amount, from_account_id, to_account_id)
         )
+
         row = crs.fetchone()
 
         self._db.commit()
@@ -126,7 +140,8 @@ class SQLiteRepository(LedgerRepository):
 
         return transaction
 
-    def get_transactions(self) -> list[Transaction]:
+
+    def get_transactions(self):
         crs = self._db.cursor()
         crs.execute("select * from transactions")
 
@@ -141,9 +156,9 @@ class SQLiteRepository(LedgerRepository):
 
         return transactions
 
-    def get_account_transactions(self, account_id) -> list[Transaction]:
+    def get_account_transactions(self, account_id):
         crs = self._db.cursor()
-        crs.execute("select * from transactions where from_account_id = ? or to_account_id = ?", (account_id, account_id))
+        crs.execute("select * from transactions where from_account_id = %s or to_account_id = %s", (account_id, account_id))
 
         rows = crs.fetchall()
 
@@ -155,4 +170,3 @@ class SQLiteRepository(LedgerRepository):
             transactions.append(transaction)
 
         return transactions
-    

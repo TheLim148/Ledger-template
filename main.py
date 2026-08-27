@@ -3,6 +3,8 @@ from PySide6.QtWidgets import QApplication
 from gui.window import LedgerWindow
 from repositories.in_memory_repository import InMemoryRepository
 from repositories.sqlite_repository import SQLiteRepository
+from repositories.postgres_repository import PostgresRepository
+
 from ledger import Ledger
 from parser import create_parser
 
@@ -17,6 +19,8 @@ def main():
         repo = InMemoryRepository()
     elif args.storage == "sqlite":
         repo = SQLiteRepository(args.db_path)
+    elif args.storage == "postgres":
+        repo = PostgresRepository("ledger", "ledger_user")
     else:
         raise ValueError(f"Unknown storage: {args.storage}")
         

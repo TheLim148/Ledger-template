@@ -9,10 +9,13 @@ dependencies = []
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
+    "ruff>=0.16.4",
 ]
-
 gui = [
     "pyside6>=6.11.1",
+]
+postgres = [
+    "psycopg[binary]>=3.3.4",
 ]
 
 [tool.pytest.ini_options]
