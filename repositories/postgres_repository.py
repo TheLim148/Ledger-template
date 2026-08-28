@@ -19,7 +19,13 @@ class PostgresRepository(LedgerRepository):
             port: int = 5432
         ) -> None:
 
-        self._db = psycopg.connect(dbname=dbname, user=user)
+        self._db = psycopg.connect(
+            dbname=dbname, 
+            user=user,
+            password = password,
+            host=host,
+            port=port,
+        )
         crs = self._db.cursor()
 
         schema_path = Path(__file__).resolve().parent.parent / "sql" / "schema_postgres.sql"
