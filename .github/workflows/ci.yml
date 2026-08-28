@@ -10,6 +10,28 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    servises:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ledger_test
+          POSTGRES_USER: ledger_user
+          POSTGRES_PASSWORD: ledger_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      POSTGRES_DB: ledger_test
+      POSTGRES_USER: ledger_user
+      POSTGRES_PASSWORD: ledger_password
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
@@ -23,7 +45,7 @@ jobs:
       uses: astral-sh/setup-uv@v7
 
     - name: Install dependencies
-      run: uv sync --dev
+      run: uv sync --dev --group postgres
 
     - name: Run tests
       run: uv run pytest

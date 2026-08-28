@@ -8,7 +8,7 @@ from repositories.postgres_repository import PostgresRepository
 from ledger import Ledger
 from parser import create_parser
 
-import sys
+import os
 
 def main():
     parser = create_parser()
@@ -20,7 +20,19 @@ def main():
     elif args.storage == "sqlite":
         repo = SQLiteRepository(args.db_path)
     elif args.storage == "postgres":
-        repo = PostgresRepository("ledger", "ledger_user")
+        dbname = os.environ["POSTGRES_DB"]
+        user = os.environ["POSTGRES_USER"]
+        password = os.getenv("POSTGRES_PASSWORD", "")
+        host = os.getenv("POSTGRES_HOST", "localhost")
+        port = int(os.getenv("POSTGRES_PORT", "5432"))
+
+        repo = PostgresRepository(
+            dbname=dbname,
+            user=user,
+            password=password,
+            host=host,
+            port=port
+        )
     else:
         raise ValueError(f"Unknown storage: {args.storage}")
         
