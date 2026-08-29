@@ -1,15 +1,11 @@
-from repositories.sqlite_repository import SQLiteRepository
-from ledger import Ledger
-from transaction import TransactionType
-
 from datetime import datetime
-
-from pathlib import Path
-
 from sqlite3 import connect
 
-import os
 import pytest
+
+from ledger import Ledger
+from repositories.sqlite_repository import SQLiteRepository
+from transaction import TransactionType
 
 
 def test_data_saves_in_db(tmp_path):
@@ -31,6 +27,7 @@ def test_data_saves_in_db(tmp_path):
 
     repo2.close()
 
+
 def test_is_transaction_type_enum(tmp_path):
     repo = SQLiteRepository(tmp_path / "test.db")
     ledger = Ledger(repo)
@@ -43,6 +40,7 @@ def test_is_transaction_type_enum(tmp_path):
     assert isinstance(transaction.transaction_type, TransactionType)
 
     repo.close()
+
 
 def test_is_created_at_datetime(tmp_path):
     repo = SQLiteRepository(tmp_path / "test.db")
@@ -57,10 +55,13 @@ def test_is_created_at_datetime(tmp_path):
 
     crs = connect(tmp_path / "test.db").cursor()
 
-    created_at = crs.execute("select created_at from transactions limit 1").fetchone()[0]
+    created_at = crs.execute("select created_at from transactions limit 1").fetchone()[
+        0
+    ]
     assert isinstance(datetime.fromisoformat(created_at), datetime)
 
     repo.close()
+
 
 def test_get_account_transactions(tmp_path):
     repo = SQLiteRepository(tmp_path / "test.db")
@@ -75,6 +76,7 @@ def test_get_account_transactions(tmp_path):
     assert transaction.transaction_type == TransactionType.WITHDRAW
 
     repo.close()
+
 
 def test_foreign_keys(tmp_path):
     repo = SQLiteRepository(tmp_path / "test.db")
@@ -92,6 +94,7 @@ def test_foreign_keys(tmp_path):
     assert transaction[4] == ledger.get_account(2).id
 
     repo.close()
+
 
 @pytest.fixture(scope="session")
 def smth(tmp_path):

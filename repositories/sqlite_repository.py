@@ -1,12 +1,12 @@
-from sqlite3 import connect
+from datetime import datetime
 from pathlib import Path
-
-from .base import LedgerRepository
+from sqlite3 import connect
 
 from account import Account
 from transaction import Transaction, TransactionType
 
-from datetime import datetime
+from .base import LedgerRepository
+
 
 class SQLiteRepository(LedgerRepository):
     def __init__(self, path_to_db: Path) -> None:
@@ -28,11 +28,7 @@ class SQLiteRepository(LedgerRepository):
         row[2] - balance\n
         """
 
-        return Account(
-            row[0],
-            row[1],
-            row[2]
-        )
+        return Account(row[0], row[1], row[2])
 
     def _row_to_transaction(self, row: tuple):
         """
@@ -45,25 +41,27 @@ class SQLiteRepository(LedgerRepository):
         """
 
         return Transaction(
-            row[0], 
-            TransactionType(row[1]), 
-            row[2], 
-            row[3], 
-            row[4], 
-            datetime.fromisoformat(row[5])
+            row[0],
+            TransactionType(row[1]),
+            row[2],
+            row[3],
+            row[4],
+            datetime.fromisoformat(row[5]),
         )
 
-    def create_account(self, owner, balance = 0) -> Account:
+    def create_account(self, owner, balance=0) -> Account:
         crs = self._db.cursor()
 
         if not owner.strip():
             raise ValueError("Owner should be non empty")
         if balance < 0:
             raise ValueError("Balance cannot be negative")
-        
-        crs.execute("insert into accounts(owner, balance) values(?, ?) returning *", (owner, balance))
-        row = crs.fetchone()
 
+        crs.execute(
+            "insert into accounts(owner, balance) values(?, ?) returning *",
+            (owner, balance),
+        )
+        row = crs.fetchone()
 
         self._db.commit()
 
@@ -93,30 +91,41 @@ class SQLiteRepository(LedgerRepository):
             account = self._row_to_account(row)
             accounts.append(account)
 
-        return accounts 
+        return accounts
 
     def update_account(self, account: Account) -> None:
         crs = self._db.cursor()
         crs.execute(
-            "update accounts set owner = ?, balance = ? where id = ?", 
-            (account.owner, account.balance, account.id)
+            "update accounts set owner = ?, balance = ? where id = ?",
+            (account.owner, account.balance, account.id),
         )
 
         self._db.commit()
 
     def create_transaction(
-        self, 
-        amount, 
-        transaction_type, 
-        from_account_id, 
-        to_account_id
+        self, amount, transaction_type, from_account_id, to_account_id
     ) -> Transaction:
         created_at = datetime.now()
 
         crs = self._db.cursor()
         crs.execute(
-            "insert into transactions(type, amount, from_account_id, to_account_id, created_at) values(?, ?, ?, ?, ?) returning *",
-            (transaction_type.value, amount, from_account_id, to_account_id, created_at.isoformat())
+            """
+            insert into transactions(
+                type, 
+                amount, 
+                from_account_id, 
+                to_account_id, 
+                created_at
+            ) 
+            values(?, ?, ?, ?, ?) returning *
+            """,
+            (
+                transaction_type.value,
+                amount,
+                from_account_id,
+                to_account_id,
+                created_at.isoformat(),
+            ),
         )
         row = crs.fetchone()
 
@@ -143,7 +152,10 @@ class SQLiteRepository(LedgerRepository):
 
     def get_account_transactions(self, account_id) -> list[Transaction]:
         crs = self._db.cursor()
-        crs.execute("select * from transactions where from_account_id = ? or to_account_id = ?", (account_id, account_id))
+        crs.execute(
+            "select * from transactions where from_account_id = ? or to_account_id = ?",
+            (account_id, account_id),
+        )
 
         rows = crs.fetchall()
 
@@ -155,4 +167,3 @@ class SQLiteRepository(LedgerRepository):
             transactions.append(transaction)
 
         return transactions
-    

@@ -1,19 +1,19 @@
+import os
+
 from PySide6.QtWidgets import QApplication
 
 from gui.window import LedgerWindow
-from repositories.in_memory_repository import InMemoryRepository
-from repositories.sqlite_repository import SQLiteRepository
-from repositories.postgres_repository import PostgresRepository
-
 from ledger import Ledger
 from parser import create_parser
+from repositories.in_memory_repository import InMemoryRepository
+from repositories.postgres_repository import PostgresRepository
+from repositories.sqlite_repository import SQLiteRepository
 
-import os
 
 def main():
     parser = create_parser()
 
-    args = parser.parse_args()    
+    args = parser.parse_args()
 
     if args.storage == "memory":
         repo = InMemoryRepository()
@@ -27,25 +27,16 @@ def main():
         port = int(os.getenv("POSTGRES_PORT", "5432"))
 
         repo = PostgresRepository(
-            dbname=dbname,
-            user=user,
-            password=password,
-            host=host,
-            port=port
+            dbname=dbname, user=user, password=password, host=host, port=port
         )
     else:
         raise ValueError(f"Unknown storage: {args.storage}")
-        
-    ledger = Ledger(repository=repo)
 
+    ledger = Ledger(repository=repo)
 
     app = QApplication([])
 
-    window = LedgerWindow(
-        seed_demo=args.demo, 
-        ledger=ledger
-    )
-
+    window = LedgerWindow(seed_demo=args.demo, ledger=ledger)
 
     window.show()
     window.setFocus()

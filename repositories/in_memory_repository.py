@@ -5,20 +5,21 @@ from transaction import Transaction
 
 from .base import LedgerRepository
 
+
 class InMemoryRepository(LedgerRepository):
     def __init__(self) -> None:
-        
+
         self.accounts: dict[int, Account] = {}
         self.transactions: list[Transaction] = []
 
         self._next_account_id = 1
         self._next_transaction_id = 1
 
-    def create_account(self, owner, balance = 0) -> Account:
+    def create_account(self, owner, balance=0) -> Account:
         account = Account(
-            id = self._next_account_id,
-            owner = owner,
-            balance = balance,
+            id=self._next_account_id,
+            owner=owner,
+            balance=balance,
         )
 
         self.accounts[account.id] = account
@@ -30,7 +31,7 @@ class InMemoryRepository(LedgerRepository):
         try:
             return self.accounts[account_id]
         except KeyError:
-            raise ValueError("Account not found")
+            raise ValueError("Account not found") from None
 
     def get_accounts(self) -> list[Account]:
         return list(self.accounts.values())
@@ -50,19 +51,15 @@ class InMemoryRepository(LedgerRepository):
         ]
 
     def create_transaction(
-        self,
-        amount,
-        transaction_type,
-        from_account_id,
-        to_account_id
+        self, amount, transaction_type, from_account_id, to_account_id
     ) -> Transaction:
         transaction = Transaction(
-            id = self._next_transaction_id,
+            id=self._next_transaction_id,
             transaction_type=transaction_type,
             amount=amount,
             from_account_id=from_account_id,
             to_account_id=to_account_id,
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
 
         self.transactions.append(transaction)

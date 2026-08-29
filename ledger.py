@@ -1,12 +1,10 @@
-from datetime import datetime
-
 from account import Account
-from transaction import Transaction, TransactionType
-from operations import deposit, withdraw, transfer
-
+from operations import deposit, transfer, withdraw
 from repositories.base import LedgerRepository
+from transaction import Transaction, TransactionType
 
-class Ledger():
+
+class Ledger:
     def __init__(self, repository: LedgerRepository) -> None:
 
         self._repo = repository
@@ -31,7 +29,7 @@ class Ledger():
             amount=amount,
             transaction_type=TransactionType.DEPOSIT,
             from_account_id=None,
-            to_account_id=account.id
+            to_account_id=account.id,
         )
 
         return transaction
@@ -53,10 +51,7 @@ class Ledger():
         return transaction
 
     def transfer(
-        self, 
-        from_account_id: int, 
-        to_account_id: int, 
-        amount: int
+        self, from_account_id: int, to_account_id: int, amount: int
     ) -> Transaction:
         from_account = self.get_account(from_account_id)
         to_account = self.get_account(to_account_id)
@@ -75,7 +70,6 @@ class Ledger():
 
         return transaction
 
-    
     def get_transactions(self) -> list[Transaction]:
         return self._repo.get_transactions()
 
