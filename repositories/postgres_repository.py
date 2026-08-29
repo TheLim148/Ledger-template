@@ -38,11 +38,6 @@ class PostgresRepository(LedgerRepository):
     def close(self) -> None:
         self._db.close()
 
-    def clear(self) -> None:
-        crs = self._db.cursor()
-
-        crs.execute("truncate table accounts, transactions restart identity cascade")
-
     def _row_to_account(self, row: tuple) -> Account:
         """
         row[0] - id\n
