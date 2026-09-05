@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
@@ -174,52 +175,51 @@ class LedgerWindow(QWidget):
 
     def parse(self, raw_value: str):
         if raw_value == "":
-            self.status_label.setText("Value is empty")
-            return
+            raise ValueError("Value is empty")
 
         try:
             value = int(raw_value)
         except ValueError:
-            self.status_label.setText("Value must be an integer")
-            return
+            raise ValueError("Failed to parse value") from None
 
         return value
+
+    def show_error(self, message: str):
+        self.status_label.setText(message)
+
+    def show_success(self, message: str):
+        self.status_label.setText(message)
+
+    def show_critical_error(self, message: str):
+        QMessageBox.warning(self, "Error", message)
 
     def handle_deposit(self):
         account_id = self.single_operation_combobox.currentData()
         raw_amount = self.single_amount_input.text()
 
-        amount = self.parse(raw_amount)
-
-        if amount is None:
-            self.status_label.setText("Amount is None")
-            return
-
         try:
+            amount = self.parse(raw_amount)
+
             self._ledger.deposit(account_id, amount)
             account = self._ledger.get_account(account_id)
 
             self.refresh_ui()
 
-            self.status_label.setText(
+            self.show_success(
                 f"Deposit is success. Balance of {account.id} is {account.balance}"
             )
 
         except ValueError as err:
-            self.status_label.setText(f"{err}")
+            self.show_error(str(err))
             return
 
     def handle_withdraw(self):
         account_id = self.single_operation_combobox.currentData()
         raw_amount = self.single_amount_input.text()
 
-        amount = self.parse(raw_amount)
-
-        if amount is None:
-            self.status_label.setText("Amount is None")
-            return
-
         try:
+            amount = self.parse(raw_amount)
+
             self._ledger.withdraw(account_id, amount)
             account = self._ledger.get_account(account_id)
 
@@ -230,7 +230,7 @@ class LedgerWindow(QWidget):
             )
 
         except ValueError as err:
-            self.status_label.setText(f"{err}")
+            self.show_error(str(err))
             return
 
     def handle_transfer(self):
@@ -239,28 +239,25 @@ class LedgerWindow(QWidget):
 
         raw_amount = self.transaction_amount_input.text()
 
-        amount = self.parse(raw_amount)
-
-        if amount is None:
-            self.status_label.setText("Amount is None")
-            return
-
         try:
+            amount = self.parse(raw_amount)
+
             self._ledger.transfer(from_account_id, to_account_id, amount)
             from_account = self._ledger.get_account(from_account_id)
             to_account = self._ledger.get_account(to_account_id)
 
             self.refresh_ui()
 
-            self.status_label.setText(
-                f"Transfer is success. Balance of {1} is {2} and {3} is {4}",
-                from_account.id,
-                from_account.balance,
-                to_account.id,
-                to_account.balance,
+            message = (
+                f"Transfer successful\n"
+                f"Account {from_account.id}: {from_account.balance}\n"
+                f"Account {to_account.id}: {to_account.balance}"
             )
+
+            self.show_success(message)
+
         except ValueError as err:
-            self.status_label.setText(f"{err}")
+            self.show_error(str(err))
             return
 
     def handle_create_account(self):
@@ -268,27 +265,21 @@ class LedgerWindow(QWidget):
         raw_balance = self.balance_input.text()
 
         if owner.strip() == "" or raw_balance == "":
-            self.status_label.setText("Fields must not be empty")
-            return
-
-        parsed_balance = self.parse(raw_balance)
-
-        if parsed_balance is None:
-            self.status_label.setText("Balance is None")
+            self.show_error("Fields must not be ampty")
             return
 
         try:
+            parsed_balance = self.parse(raw_balance)
+
             account = self._ledger.create_account(owner, parsed_balance)
 
             self.refresh_ui()
 
         except ValueError as err:
-            self.status_label.setText(f"{err}")
+            self.show_error(str(err))
             return
 
-        self.status_label.setText(
-            f"Account created: {account.owner}, {account.balance}"
-        )
+        self.show_success(f"Account created: {account.owner}, {account.balance}")
 
     def refresh_comboboxes(self, accounts: list[Account]):
         account_comboboxes = self._account_comboboxes
