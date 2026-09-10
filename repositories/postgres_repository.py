@@ -3,6 +3,7 @@ from pathlib import Path
 import psycopg
 
 from account import Account
+from errors import DatabaseError
 from transaction import Transaction, TransactionType
 
 from .base import LedgerRepository
@@ -18,13 +19,17 @@ class PostgresRepository(LedgerRepository):
         port: int = 5432,
     ) -> None:
 
-        self._db = psycopg.connect(
-            dbname=dbname,
-            user=user,
-            password=password,
-            host=host,
-            port=port,
-        )
+        try:
+            self._db = psycopg.connect(
+                dbname=dbname,
+                user=user,
+                password=password,
+                host=host,
+                port=port,
+            )
+        except psycopg.OperationalError as e:
+            raise DatabaseError("Не удалось подключиться к базе данных") from e
+
         crs = self._db.cursor()
 
         schema_path = (
@@ -32,7 +37,11 @@ class PostgresRepository(LedgerRepository):
         )
         with open(schema_path) as file:
             schema = file.read()
-            crs.execute(schema)
+
+            try:
+                crs.execute(schema)
+            except psycopg.OperationalError as e:
+                raise DatabaseError("Ошибка выполнения SQL-запроса") from e
 
         self._db.commit()
 

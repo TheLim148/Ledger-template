@@ -1,8 +1,9 @@
 from datetime import datetime
 from pathlib import Path
-from sqlite3 import connect
+from sqlite3 import Error, connect
 
 from account import Account
+from errors import DatabaseError
 from transaction import Transaction, TransactionType
 
 from .base import LedgerRepository
@@ -10,13 +11,22 @@ from .base import LedgerRepository
 
 class SQLiteRepository(LedgerRepository):
     def __init__(self, path_to_db: Path) -> None:
-        self._db = connect(path_to_db)
+
+        try:
+            self._db = connect(path_to_db)
+        except Error as e:
+            raise DatabaseError("Не удалось подключиться к базе данных") from e
+
         crs = self._db.cursor()
 
         schema_path = Path(__file__).resolve().parent.parent / "sql" / "schema.sql"
         with open(schema_path) as file:
             sql = file.read()
-            crs.executescript(sql)
+
+            try:
+                crs.executescript(sql)
+            except Error as e:
+                raise DatabaseError("Ошибка выполнения SQL-запроса") from e
 
     def close(self) -> None:
         self._db.close()
