@@ -91,7 +91,7 @@ class SQLiteRepository(LedgerRepository):
 
     def get_accounts(self) -> list[Account]:
         crs = self._db.cursor()
-        crs.execute("select * from accounts")
+        crs.execute("select * from accounts order by id")
 
         rows = crs.fetchall()
 
@@ -147,7 +147,7 @@ class SQLiteRepository(LedgerRepository):
 
     def get_transactions(self) -> list[Transaction]:
         crs = self._db.cursor()
-        crs.execute("select * from transactions")
+        crs.execute("select * from transactions order by id")
 
         rows = crs.fetchall()
 

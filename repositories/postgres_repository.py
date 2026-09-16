@@ -103,7 +103,7 @@ class PostgresRepository(LedgerRepository):
 
     def get_accounts(self) -> list[Account]:
         crs = self._db.cursor()
-        crs.execute("select * from accounts")
+        crs.execute("select * from accounts order by id")
 
         rows = crs.fetchall()
 
@@ -146,7 +146,7 @@ class PostgresRepository(LedgerRepository):
 
     def get_transactions(self):
         crs = self._db.cursor()
-        crs.execute("select * from transactions")
+        crs.execute("select * from transactions order by id")
 
         rows = crs.fetchall()
 

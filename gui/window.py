@@ -38,12 +38,12 @@ class LedgerWindow(QWidget):
         self.status_label = QLabel()
         self.status_label.setMaximumWidth(300)
 
+        self.selected_account_label = QLabel("Здесь будет выбранный аккаунт")
+        self.selected_account_id = None
+
         self.create_account_btn = QPushButton("Create Account")
         self.create_account_btn.setMaximumWidth(100)
         self.create_account_btn.clicked.connect(self.handle_create_account)
-
-        self.single_operation_combobox = QComboBox()
-        self.single_operation_combobox.setMaximumWidth(300)
 
         self.from_accounts_combobox = QComboBox()
         self.from_accounts_combobox.setMaximumWidth(300)
@@ -52,7 +52,6 @@ class LedgerWindow(QWidget):
         self.to_accounts_combobox.setMaximumWidth(300)
 
         self._account_comboboxes = [
-            self.single_operation_combobox,
             self.from_accounts_combobox,
             self.to_accounts_combobox,
         ]
@@ -82,6 +81,7 @@ class LedgerWindow(QWidget):
         self.accounts_table.setEditTriggers(
             QAbstractItemView.EditTrigger.NoEditTriggers
         )
+        self.accounts_table.itemSelectionChanged.connect(self.on_account_selected)
 
         self.transactions_table = QTableWidget(columnCount=6)
         self.transactions_table.setHorizontalHeaderLabels(
@@ -107,7 +107,7 @@ class LedgerWindow(QWidget):
 
         single_operation_layout = QVBoxLayout()
         single_operation_layout.addWidget(QLabel("Single Account operations"))
-        single_operation_layout.addWidget(self.single_operation_combobox)
+        single_operation_layout.addWidget(self.selected_account_label)
         single_operation_layout.addWidget(self.single_amount_input)
         single_operation_layout.addWidget(self.deposit_btn)
         single_operation_layout.addWidget(self.withdraw_btn)
@@ -193,8 +193,27 @@ class LedgerWindow(QWidget):
     def show_critical_error(self, message: str):
         QMessageBox.warning(self, "Error", message)
 
+    def on_account_selected(self):
+        row = self.accounts_table.currentRow()
+
+        if row == -1:
+            return
+
+        account_id = int(self.accounts_table.item(row, 0).text())
+
+        self.selected_account_id = account_id
+
+        self.set_selected_account(self.selected_account_id)
+
+    def set_selected_account(self, account_id):
+        account = self._ledger.get_account(account_id)
+
+        self.selected_account_label.setText(
+            f"{account.owner} | Balance: {account.balance}"
+        )
+
     def handle_deposit(self):
-        account_id = self.single_operation_combobox.currentData()
+        account_id = self.selected_account_id
         raw_amount = self.single_amount_input.text()
 
         try:
@@ -209,12 +228,14 @@ class LedgerWindow(QWidget):
                 f"Deposit is success. Balance of {account.id} is {account.balance}"
             )
 
+            self.restore_selection()
+
         except ValueError as err:
             self.show_error(str(err))
             return
 
     def handle_withdraw(self):
-        account_id = self.single_operation_combobox.currentData()
+        account_id = self.selected_account_id
         raw_amount = self.single_amount_input.text()
 
         try:
@@ -228,6 +249,8 @@ class LedgerWindow(QWidget):
             self.status_label.setText(
                 f"Withdraw is success. Balance of {account.id} is {account.balance}"
             )
+
+            self.restore_selection()
 
         except ValueError as err:
             self.show_error(str(err))
@@ -309,6 +332,9 @@ class LedgerWindow(QWidget):
             self.transfer_btn.setEnabled(False)
         else:
             self.transfer_btn.setEnabled(True)
+
+    def restore_selection(self):
+        self.accounts_table.selectRow(self.selected_account_id - 1)
 
     def refresh_ui(self):
         self.clear_inputs()
